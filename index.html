@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<title>Instrument Index</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+<style>
+
+/* ================= UI DESIGN ================= */
+body {
+  font-family: 'Segoe UI';
+  margin: 0;
+  background: #0b1a2b;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size:40px 40px;
+  color:#e2e8f0;
+}
+
+h2 { text-align:center; color:#93c5fd; }
+
+form {
+  max-width:1100px;
+  margin:20px auto;
+  padding:25px;
+  background:rgba(15,23,42,0.9);
+  border-radius:10px;
+
+  display:grid;
+  grid-template-columns: repeat(2, 1fr); /* equal columns */
+  gap:20px 30px;
+
+  align-items: stretch; /* instead of start */
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 70px;   /* KEY FIX */
+}
+
+.field input,
+.field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+label {
+  color:#93c5fd;
+  font-weight:bold;
+  min-height: 20px;   /* keeps all labels same height */
+}
+
+input, select {
+  padding:8px;
+  border-radius:5px;
+  border:1px solid #444;
+  background:#020617;
+  color:white;
+  height: 36px;   /* force equal height */
+}
+
+.full { grid-column: span 2; }
+
+.error {
+  color:red;
+  font-size:12px;
+  min-height:16px;   /* keeps rows aligned */
+}
+
+/* BUTTON GAP FIX */
+.button-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+button {
+  padding:12px;
+  width:100%;
+  border:none;
+  border-radius:6px;
+  background:#2563eb;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.export-btn { background:#16a34a; }
+
+#freeboardRow { display:none; }
+
+/* ================= DASHBOARD ================= */
+.dashboard {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  gap:20px; 
+}
+
+.dashboard button {
+  width:250px;
+  padding:15px;
+  font-size:16px;
+}
+
+.back-btn:hover {
+  background: #64748b;
+}
+.back-btn:hover {
+  background: #64748b;
+}
+
+/* Dashboard button hover effect */
+.dashboard button {
+  transition: all 0.25s ease;
+  background: #1e3a8a;
+}
+
+.dashboard button:hover {
+  background: #2563eb;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.5);
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* EXACT 3 equal columns */
+  gap: 15px;
+}
+
+.button-row button {
+  width: 100%;
+}
+.back-btn {
+  background: #475569;
+}
+
+.back-btn:hover {
+  background: #64748b;
+}
+
+.page-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: #60a5fa;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+#previewTable th, #previewTable td {
+  border:1px solid #334155;
+  padding:8px;
+}
+
+#previewTable tbody tr:nth-child(even){
+  background:#020617;
+}
+
+#previewTable tbody tr:hover{
+  background:#1e293b;
+}
+</style>
+</head>
+
+<body>
+  <div id="dashboard" class="dashboard">
+
+  <h2>Main Dashboard</h2>
+
+  <button onclick="openPage()">Instrument Index</button>
+
+<button onclick="showUnderDevelopment('IO List')">IO List</button>
+<button onclick="showUnderDevelopment('Drive List')">Drive List</button>
+<button onclick="showUnderDevelopment('MRF Automation')">MRF Automation</button>
+<button onclick="showUnderDevelopment('Datasheet')">Datasheet</button>
+
+</div>
+
+<!-- ================= PAGE UI ================= -->
+<div id="mainForm" style="display:none;">
+  <h1 class="page-title">Instrument Index</h1>
+
+  <form id="formGrid" onsubmit="return false;">
+
+
+<div class="field"><label>Tag</label><input id="tag"></div>
+
+<div class="field">
+<label>Description</label>
+<select id="desc" onchange="updateFields()">
+<option></option>
+<option>Pressure Gauge</option>
+<option>Pressure Transmitter</option>
+<option>Pressure Switch</option>
+<option>Rotameter</option>
+<option>Flow Transmitter</option>
+<option>Level Gauge</option>
+<option>Level Transmitter</option>
+<option>Level Switch</option>
+<option>Temperature Gauge</option>
+<option>Temperature Transmitter</option>
+<option>Analyser</option>
+</select>
+</div>
+
+<div class="field"><label>Type</label><select id="type"></select></div>
+<div class="field"><label>Service Line</label><input id="service"></div>
+
+<div class="field">
+<label>Fluid Handled</label>
+<select id="fluid">
+<option value="">--Select--</option>
+
+<option>Sodium Hypochlorite (NaOCl)</option>
+<option>Chlorine Dioxide</option>
+<option>Ozone</option>
+<option>Sodium Hypochlorite</option>
+<option>Calcium Hypochlorite</option>
+<option>Hydrogen Peroxide</option>
+<option>Aluminum Sulfate (Alum)</option>
+<option>Ferric Chloride</option>
+<option>Ferric Sulfate</option>
+<option>Ferrous Sulfate</option>
+<option>Polyaluminum Chloride (PAC)</option>
+<option>Polyferric Sulfate (PFS)</option>
+<option>Polyacrylamide (PAM)</option>
+<option>Activated Carbon</option>
+</select>
+</div>
+
+<div class="field">
+<label>Line Size (NB)</label>
+<input id="size" onkeydown="validateSize(event)">
+<div id="sizeError" class="error"></div>
+</div>
+
+<div class="field">
+<label>Line MOC</label>
+
+
+
+<select id="moc" onchange="checkCompatibility()">
+<option value="">--Select--</option>
+
+<!-- Metals -->
+<option>SS316</option>
+<option>SS304</option>
+<option>Carbon Steel</option>
+<option>HDPE</option>
+<option>PVC</option>
+<option>CPVC</option>
+<option>PP (Polypropylene)</option>
+<option>PTFE (Teflon)</option>
+<option>PVDF</option>
+<option>Rubber Lined Steel</option>
+
+</select>
+
+<div id="compatWarning"
+     style="color:red; font-size:13px; display:none;">
+   Not compatible with Line MOC
+</div>
+</div>
+
+<div class="field"><label>Line No</label><input id="lineno"></div>
+
+<div class="field">
+<label id="normalLabel">Normal Range</label>
+<input id="normal" type="number" oninput="autoCalculate()">
+</div>
+
+<div class="field" id="freeboardRow">
+<label>Freeboard</label>
+<input id="freeboard" type="number" oninput="autoCalculate()">
+</div>
+
+<div class="field"><label>Max Range</label><input id="max"></div>
+<div class="field"><label>Eng Unit</label><input id="unit" readonly></div>
+
+<div class="field"><label>Set Range</label><input id="setrange"></div>
+<div class="field"><label>Instrument Range</label><input id="insrange"></div>
+
+
+<div class="field full"><label>Process Connection</label><input id="conn"></div>
+
+<div class="field"><label>P&ID No</label><input id="pid"></div>
+<div class="field"><label>Sheet No</label><input id="sheet"></div>  
+
+
+
+<div class="field full button-row">
+  <button class="back-btn" onclick="goBack()">← Back</button>
+  <button onclick="addData()">Add Entry</button>
+  <button class="export-btn" onclick="downloadExcel()">Export Excel</button>
+</div>
+
+<!-- ✅ PREVIEW HERE -->
+<h3 style="grid-column: span 2; text-align:center; color:#93c5fd;">
+  Preview
+</h3>
+
+<div style="grid-column: span 2; overflow-x:auto;">
+  <table id="previewTable" style="width:100%; border-collapse:collapse; text-align:center;">
+    <thead style="background:#1e3a8a;">
+      <tr>
+        <th>Tag</th>
+        <th>Description</th>
+        <th>Type</th>
+        <th>Service</th>
+        <th>Line Size</th>
+        <th>Fluid</th>
+        <th>Line MOC</th>
+        <th>Normal Range</th>
+        <th>Freeboard</th>
+        <th>Max Range</th>
+        <th>Eng Unit</th>
+        <th>Set Range</th>
+        <th>Instrument Range</th>
+        <th>Process Connection</th>
+        <th>P&ID No.</th>
+        <th>Sheet No.</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+</form>   <!-- ONLY ONE closing form here -->
+</div>
+
+<script>
+  function showUnderDevelopment(name){
+  alert(name + " is under development");
+}
+  function goBack(){
+  document.getElementById("mainForm").style.display = "none";
+  document.getElementById("dashboard").style.display = "flex";
+}
+  function openPage(){
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("mainForm").style.display = "grid";
+}
+
+/* ================= DATA MODEL ================= */
+const db = {
+"Pressure Gauge": { unit:"kg/cm²", conn:'1/2" NPT (Male)', type:["Bourdon", "Diaphragm"], calc:"pressure" },
+"Pressure Transmitter": { unit:"kg/cm²", conn:'1/2" NPT (Female)', type:["Bourdon","Diaphragm"], calc:"pressure" },
+"Pressure Switch": { unit:"kg/cm²", conn:'1/2" NPT (Female)', type:["Bourdon","Diaphragm"], calc:"pressure" },
+
+"Rotameter": { unit:"m³/hr", conn:'1\" FLANGE', type:["BYPASS","ONLINE"], calc:"flow" },
+"Flow Transmitter": { unit:"m³/hr", conn:'1\" FLANGE', type:["Ultrasonic","Vortex","Electromagnetic","Coriolis"], calc:"flow" },
+
+"Level Gauge": { unit:"mm", conn:'1\" #150 FLANGE', type:["Reflex","Tubular","Float and Board"], calc:"level" },
+"Level Transmitter": { unit:"mm", conn:'3\" #150 FLANGE', type:["Guided Wave Radar","Capacitance","Hydrostatic","DP Type"], calc:"level" },
+"Level Switch": { unit:"mm", conn:'3\" #150 FLANGE', type:["Float","Displacer","Capacitive","Vibrating Fork","Magnetic"], calc:"level" },
+
+"Temperature Gauge": { unit:"°C", conn:"Thermowell", type:["Bimetallic","Mercury"], calc:"temp" },
+"Temperature Transmitter": { unit:"°C", conn:"Thermowell", type:["RTD","Thermocouple"], calc:"temp" },
+
+"Analyser": {
+  calc:"analyzer",
+  types:{
+    "pH Analyzer":"pH",
+    "Conductivity Analyzer":"µS/cm",
+    "TDS":"ppm",
+    "Dissolved Oxygen":"ppm",
+"Turbidity":"NTU",
+"Chlorine":"ppm",
+"ORP":"mV",
+"Silica":"ppb",
+"Sodium":"ppb",
+"TOC":"ppm",
+"COD":"mg/L",
+"BOD":"mg/L",
+"Oil-in-Water":"ppm"
+  }
+}
+};
+
+function checkCompatibility(){
+
+let fluidVal = fluid.value;
+let mocVal = moc.value;
+
+/* Reset */
+compatWarning.style.display = "none";
+
+if(!fluidVal || !mocVal) return;
+
+const compatibilityDB = {
+
+"Sodium Hypochlorite": {
+  preferred:["PVC","CPVC","PVDF"]
+},
+
+"Hydrochloric Acid (HCl)": {
+  preferred:["PTFE Lined Steel","Rubber Lined Steel"]
+},
+
+"Sodium Hydroxide (NaOH)": {
+  preferred:["HDPE","PP (Polypropylene)","Stainless Steel (SS316)"]
+},
+
+"Ferric Chloride": {
+  preferred:["Rubber Lined Steel","HDPE"]
+},
+
+"Polyaluminum Chloride (PAC)": {
+  preferred:["HDPE","PP (Polypropylene)"]
+},
+
+"Chlorine": {
+  preferred:["PVDF","PTFE (Teflon)"]
+},
+
+"Hydrogen Peroxide": {
+  preferred:["PVDF","Stainless Steel (SS316L)"]
+},
+
+"Antiscalants (generic)": {
+  preferred:["PVC","HDPE"]
+}
+
+};
+
+/* Find chemical */
+let chem = compatibilityDB[fluidVal];
+
+if(!chem){
+
+  compatWarning.style.display = "block";
+  compatWarning.style.color = "orange";
+  compatWarning.innerText = "Compatibility data not available";
+
+  return;
+}
+
+/* Compatible */
+if(chem.preferred.includes(mocVal)){
+
+  compatWarning.style.display = "block";
+  compatWarning.style.color = "#22c55e";
+
+  compatWarning.innerText =
+    "✔ Compatible / Preferred MOC";
+
+}
+
+/* Not compatible */
+else{
+
+  compatWarning.style.display = "block";
+  compatWarning.style.color = "red";
+
+  compatWarning.innerText =
+    "✖ Not Preferred for this Chemical";
+
+}
+
+}
+
+/* ================= VALIDATION ================= */
+function validateSize(e) {
+
+  // Allow control keys
+  const allowedKeys = [
+    "Backspace", "Delete", "Tab",
+    "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"
+  ];
+
+  if (allowedKeys.includes(e.key)) {
+    return;
+  }
+
+  // Allow only digits (0–9)
+  if (!/^[0-9]$/.test(e.key)) {
+    e.preventDefault();
+    sizeError.innerText = "Only numbers allowed";
+  } else {
+    sizeError.innerText = "";
+  }
+}
+/* ================= FIELD UPDATE LOGIC ================= */
+function updateFields(){
+
+let d = desc.value;
+let c = db[d];
+
+type.innerHTML="";
+unit.value="";
+conn.value="";
+freeboardRow.style.display="none";
+normalLabel.innerText="Normal Range";
+
+if(!c) return;
+
+/* Populate Types */
+if(c.type){
+  c.type.forEach(t=>type.innerHTML+=`<option>${t}</option>`);
+}
+
+/* Analyzer Type + Unit Auto */
+if(d==="Analyser"){
+  for(let k in c.types){
+    type.innerHTML+=`<option value="${k}">${k}</option>`;
+  }
+  type.onchange = ()=> unit.value = c.types[type.value];
+}
+
+/* Autofill */
+if(c.unit) unit.value = c.unit;
+if(c.conn) conn.value = c.conn;
+
+/* Level UI */
+if(c.calc==="level"){
+  freeboardRow.style.display="block";
+  normalLabel.innerText="Normal Range (SWD)";
+}
+
+}
+
+/* ================= CALCULATION ENGINE ================= */
+function autoCalculate(){
+
+let d = desc.value;
+let c = db[d];
+let n = parseFloat(normal.value);
+
+if(!c || isNaN(n)) return;
+
+/* Pressure + Temperature */
+if(c.calc==="pressure" || c.calc==="temp"){
+  let maxVal = 1.2*n;
+  let std=[1,1.6,2.5,4,6,10,16,25,40,60,100,160,250,400,600];
+  let sel = std.find(r=>maxVal<=r) || 600;
+
+  max.value = maxVal.toFixed(2);
+  setrange.value = "0-"+sel;
+  insrange.value = "0-"+sel;
+}
+
+/* Flow */
+if(c.calc==="flow"){
+  let maxVal = 1.2*n;
+  max.value = maxVal.toFixed(2);
+  setrange.value = "0-"+maxVal.toFixed(2);
+  insrange.value = "0-"+(n/0.8).toFixed(2);
+}
+
+/* Level */
+if(c.calc==="level"){
+  let fb = parseFloat(freeboard.value)||0;
+  let m = n + fb;
+
+  max.value = m;
+  setrange.value = "0-"+m;
+  insrange.value = "0-"+m;
+}
+
+/* Analyzer */
+if(c.calc==="analyzer"){
+  max.value = (1.2*n).toFixed(2);
+  setrange.value = "0-"+(1.5*n).toFixed(2);
+  insrange.value = "0-"+(1.6*n).toFixed(2);
+}
+
+}
+
+/* ================= DATA STORAGE ================= */
+let data = [];
+
+function addData(){
+
+let entry = {
+Tag:tag.value,
+Description:desc.value,
+Type:type.value,
+Service:service.value,
+LineSize:size.value,
+Fluid:fluid.value,
+MOC:moc.value,
+LineNo:lineno.value,
+Normal:normal.value,
+Freeboard:freeboard.value,
+Max:max.value,
+Unit:unit.value,
+SetRange:setrange.value,
+InstrumentRange:insrange.value,
+PID:pid.value,
+Sheet:sheet.value,
+Connection:conn.value
+};
+
+data.push(entry);
+
+/* ==== ADD TO PREVIEW TABLE ==== */
+let row = document.createElement("tr");
+
+row.innerHTML = `
+<td>${entry.Tag}</td>
+<td>${entry.Description}</td>
+<td>${entry.Type}</td>
+<td>${entry.Service}</td>
+<td>${entry.LineSize}</td>
+<td>${entry.Fluid || "-"}</td>
+<td>${entry.MOC}</td>
+<td>${entry.Normal}</td>
+<td>${entry.Freeboard || "-"}</td>
+<td>${entry.Max}</td>
+<td>${entry.Unit}</td>
+<td>${entry.SetRange}</td>
+<td>${entry.InstrumentRange}</td>
+<td>${entry.Connection}</td>
+<td>${entry.PID}</td>
+<td>${entry.Sheet}</td>
+`;
+
+document.querySelector("#previewTable tbody").appendChild(row);
+
+alert("Entry Added");
+
+}
+
+/* ================= EXCEL EXPORT ================= */
+function downloadExcel(){
+
+if(!data.length){
+  alert("No data");
+  return;
+}
+
+let ws = XLSX.utils.json_to_sheet(data);
+
+/* Column width */
+ws['!cols'] = Object.keys(data[0]).map(()=>({wch:20}));
+
+/* Borders + alignment */
+Object.keys(ws).forEach(cell=>{
+  if(cell[0]==='!') return;
+  ws[cell].s={
+    alignment:{horizontal:"center",vertical:"center"},
+    border:{
+      top:{style:"thin"},
+      bottom:{style:"thin"},
+      left:{style:"thin"},
+      right:{style:"thin"}
+    }
+  };
+});
+
+let wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, "Instrument Index");
+
+XLSX.writeFile(wb, "Instrument_Index.xlsx", {cellStyles:true});
+
+}
+
+</script>
+
+</body>
+</html>
